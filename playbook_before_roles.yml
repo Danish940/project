@@ -1,0 +1,110 @@
+---
+
+- hosts: web_servers
+  become: true
+  tasks:
+
+
+
+
+   - name: applying updates to remote machine
+     yum:
+       name: '*'
+       state: latest
+
+
+
+   - name: download nfs-utils
+     yum:
+       name: nfs-utils
+       state: latest
+
+
+
+   - name: start nfs (Cent0S)
+     service:
+       name: nfs
+       state: started
+
+
+
+   - name: mount nfs
+      become: true
+      vars:
+        mynfs: "inventory"/nfs/share"
+        mountpoint: "/share"
+        permission: '0777'
+        myopts: 'rw,sync'
+
+   - name: check mountpoint exist
+     ansible.builtin.file:
+       path: "{{ mountpoint }}"
+       state: directory
+       mode: "{{ permission }}"
+       owner: root
+       group: root
+
+   -name: mount network share
+    ansible.posix.mount:
+    src: "{{ mynfs }}"
+    fstype: nfs
+    opts: "{{ myopts }}"
+    state: mounted
+
+
+
+
+
+- hosts: db_servers
+  become: true
+  tasks:
+
+
+
+# tasks file for dbroles
+
+
+   - name: applying updates to remote machine
+     yum:
+       name: '*'
+       state: latest
+
+
+   - name: create john user
+     tags: always
+     user:
+       name: john
+
+
+
+   - name: copying file over to remote node
+     copy:
+       src: /etc/project/dbroles/task/main.yml
+       dest: /etc/inventory
+       owneri: /etc/inventory
+       group: root
+
+
+- hosts: test_servers
+  become: true
+  tasks:
+
+
+   - name: update and patch server
+     yum:
+       name: '*'
+       state: latest  
+       update_cache: yes
+
+
+
+   
+   - name:cron automate
+     host: all
+     tasks:
+       - name: "cron auto"
+         state: present
+         minute:
+         hour:
+         day: "7"
+         jobs: "yum update all"
